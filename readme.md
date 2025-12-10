@@ -29,7 +29,7 @@ Start sending kubectl requests on '<cluster_name>' context using kubeconfig at /
 Press Ctrl+C to close proxy.
 ```
 
-__NOTE__: you will need to open a new terminal window to run your kubectl commands
+__NOTE__: you will need to open a new terminal window to run your kubectl commands as the proxy connection continues to run in the window.
 
 Check to see that you have access to your Arc-enabled Kubernetes cluster on the Azure Local
 
