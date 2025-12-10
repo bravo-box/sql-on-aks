@@ -85,7 +85,23 @@ Once you have your storage class and namespace created you will be ready to roll
 
 ### Deploying SQL Container from YAML
 
-__NOTE__: before you proceed ensure that the SA_PASSWORD on row 8 of the sql-server-aks.yaml
+__NOTE__: before you proceed ensure that the SA_PASSWORD on row 8 of the sql-server-aks.yaml has been changed. You can create a new base64 encoded password
+
+Powershell
+
+```powershell
+$bytes = [System.Text.Encoding]::UTF8.GetBytes("your string here")
+$encoded = [System.Convert]::ToBase64String($bytes)
+$encoded
+```
+
+Linux/macOS
+
+```bash
+echo -n "your string here" | base64
+```
+
+Update the sql-server-aks.yaml file with the new password. Deploy your SQL containers.
 
 ```cli
 kubectl apply -f sql-server-aks.yaml
