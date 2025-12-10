@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  namespace: a3-demo
+  name: mssql-secret
+type: Opaque
+data:
+  SA_PASSWORD: c3Ryb25nUGFzc3dvcmQh # base64 for "strongPassword!"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: a3-demo
+  name: mssql-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: default # Azure example
+  volumeMode: Filesystem
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: a3-demo
+  name: mssql
+spec:
+  serviceName: "mssql"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mssql
+  template:
+    metadata:
+      labels:
+        app: mssql
+    spec:
+      securityContext:
+        runAsUser: 10001        # SQL Server container user
+        fsGroup: 10001          # Ensures PVC is writable by SQL Server
+      containers:
+        - name: mssql
+          image: mcr.microsoft.com/mssql/server:2022-latest
+          ports:
+            - containerPort: 1433
+          env:
+            - name: ACCEPT_EULA
+              value: "Y"
+            - name: SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mssql-secret
+                  key: SA_PASSWORD
+          volumeMounts:
+            - name: mssql-data
+              mountPath: /var/opt/mssql
+  volumeClaimTemplates:
+    - metadata:
+        name: mssql-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: default
+        resources:
+          requests:
+            storage: 20Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: a3-demo
+  name: mssql
+  annotations:
+    app: mssql
+  labels:
+    app: mssql
+spec:
+  type: LoadBalancer
+  loadBalancerIP: 192.168.1.222
+  ports:
+    - port: 1433
+      targetPort: 1433
+  selector:
+    app: mssql
