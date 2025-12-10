@@ -57,17 +57,19 @@ mdc                       Active   22d
 
 ```cli
 kubectl get storageclass
+```
 
-=============================================
 example output:
 
+```cli
 NAME                PROVISIONER           RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
 default (default)   disk.csi.akshci.com   Delete          Immediate           true                   22d
 sql-storage         disk.csi.akshci.com   Retain          Immediate           true                   10m
-=============================================
+```
 
-** If you need to deploy a new storage class **
+If you need to deploy a new storage class
 
+```cli
 kubectl apply -f storage_class.yaml
 ```
 
@@ -93,42 +95,48 @@ __NOTE__: to check the status of your deployment
 
 ```cli
 kubectl get pods -n sql-demo
-
-=============================================
-expected output:
-
-NAME      READY   STATUS    RESTARTS   AGE
-mssql-0   1/1     Running   0          81m
-=============================================
-** check pvc binding **
-
-kubectl get pvc -n sql-demo
-
-=============================================
-example output:
-
-mssql-data-mssql-0   Bound    pvc-ad134dca-6d82-4e24-a3fe-b7da90444930   20Gi       RWO            default        <unset>                 84m
-mssql-pvc            Bound    pvc-c8d89563-fe7d-4e7e-9f45-ea6d4709e826   20Gi       RWO            default        <unset>                 84m
-=============================================
-** you can also check the status of the service **
-
-kubectl get service -n sql-demo
-
-=============================================
-example output:
-
-NAME    TYPE           CLUSTER-IP   EXTERNAL-IP   PORT(S)          AGE
-mssql   LoadBalancer   10.99.75.8   <pending>     1433:32666/TCP   83m
-=============================================
 ```
 
-At this point you will notice that there is a __pending__ external ip on the Azure Local. If you were deploying directly to AKS you would likely have a public IP. Ensure that you are securing that public IP with an NSG.
+expected output:
+
+```cli
+NAME      READY   STATUS    RESTARTS   AGE
+mssql-0   1/1     Running   0          81m
+```
+
+check pvc binding
+
+```cli
+kubectl get pvc -n sql-demo
+```
+
+example output:
+
+```cli
+mssql-data-mssql-0   Bound    pvc-ad134dca-6d82-4e24-a3fe-b7da90444930   20Gi       RWO            default        <unset>                 84m
+mssql-pvc            Bound    pvc-c8d89563-fe7d-4e7e-9f45-ea6d4709e826   20Gi       RWO            default        <unset>                 84m
+```
+
+check the status of the service
+
+```cli
+kubectl get service -n sql-demo
+```
+
+example output:
+
+```cli
+NAME    TYPE           CLUSTER-IP   EXTERNAL-IP   PORT(S)          AGE
+mssql   LoadBalancer   10.99.75.8   <pending>     1433:32666/TCP   83m
+```
+
+At this point you will notice that there is a *pending* external ip on the Azure Local. If you were deploying directly to AKS you would likely have a public IP. Ensure that you are securing that public IP with an NSG.
 
 ### Creating Load Balancer on Azure Local
 
 Azure Local uses MetalLB, you will need to ensure that the arcnetworking extension is deployed. Here is the Microsoft Learn documentation to walk through [*Deploying MetalLB for Arc-Enabled Kubernetes*](https://learn.microsoft.com/en-us/azure/aks/aksarc/deploy-load-balancer-portal)
 
-Once you have the extension deployed, you can proceed in creating a loadbalancer so you can connect to the SQL instance
+Once you have the extension deployed, you can proceed in creating a loadbalancer so you can connect to the SQL instance.
 
 ```cli
 lbname=sql-lb
@@ -138,10 +146,11 @@ advertiseMode=both
 svcSelector={"app":"mssql"}
 
 az k8s-runtime load-balancer create --load-balancer-name $lbname --resource-uri $resUri --addresses $ipRange --advertise-mode $advertiseMode --service-selector $svcSelector
+```
 
-=============================================
 example output:
 
+```json
 {
   "id": "/subscriptions/<subid>/resourceGroups/<rg_name>/providers/Microsoft.Kubernetes/ConnectedClusters/<clustername>/providers/Microsoft.KubernetesRuntime/loadBalancers/sql-lb",
   "name": "sql-lb",
@@ -166,7 +175,6 @@ example output:
   },
   "type": "microsoft.kubernetesruntime/loadbalancers"
 }
-=============================================
 ```
 
 You should now be able to connect to the SQL Server in AKS, using the ip listed above and connecting on port 1433.
