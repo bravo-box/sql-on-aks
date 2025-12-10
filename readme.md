@@ -19,13 +19,14 @@ Connecting to Azure Local requires a proxy connection. This Microsoft Learn arti
 ```cli
 az connectedk8s proxy -n <cluster_name> -g <cluster_rg>
 
+=============================================
 expected output:
 
 Proxy is listening on port 47011
 Merged "<cluster_name>" as current context in /<path>/.kube/config
 Start sending kubectl requests on '<cluster_name>' context using kubeconfig at /<path>/.kube/config
 Press Ctrl+C to close proxy.
-
+=============================================
 ```
 
 __NOTE__: you will need to open a new terminal window to run your kubectl commands
@@ -35,7 +36,9 @@ Check to see that you have access to your Arc-enabled Kubernetes cluster on the 
 ```cli
 kubectl get ns
 
+=============================================
 example output:
+
 NAME                      STATUS   AGE
 azure-arc                 Active   22d
 azuremonitor-containers   Active   22d
@@ -47,6 +50,7 @@ kube-node-lease           Active   22d
 kube-public               Active   22d
 kube-system               Active   22d
 mdc                       Active   22d
+=============================================
 ```
 
 ### Validate the storage class that you have on your Azure Local, this will be need to be updated in the sql-server-aks.yaml file (row 23 and 71)
@@ -54,11 +58,13 @@ mdc                       Active   22d
 ```cli
 kubectl get storageclass
 
+=============================================
 example output:
 
 NAME                PROVISIONER           RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
 default (default)   disk.csi.akshci.com   Delete          Immediate           true                   22d
 sql-storage         disk.csi.akshci.com   Retain          Immediate           true                   10m
+=============================================
 
 ** If you need to deploy a new storage class **
 
@@ -88,28 +94,35 @@ __NOTE__: to check the status of your deployment
 ```cli
 kubectl get pods -n sql-demo
 
+=============================================
 expected output:
+
 NAME      READY   STATUS    RESTARTS   AGE
 mssql-0   1/1     Running   0          81m
-
+=============================================
 ** check pvc binding **
 
 kubectl get pvc -n sql-demo
 
-expected output:
+=============================================
+example output:
+
 mssql-data-mssql-0   Bound    pvc-ad134dca-6d82-4e24-a3fe-b7da90444930   20Gi       RWO            default        <unset>                 84m
 mssql-pvc            Bound    pvc-c8d89563-fe7d-4e7e-9f45-ea6d4709e826   20Gi       RWO            default        <unset>                 84m
-
+=============================================
 ** you can also check the status of the service **
 
 kubectl get service -n sql-demo
 
-expected output: 
+=============================================
+example output:
+
 NAME    TYPE           CLUSTER-IP   EXTERNAL-IP   PORT(S)          AGE
 mssql   LoadBalancer   10.99.75.8   <pending>     1433:32666/TCP   83m
+=============================================
 ```
 
-At this point you will notice that there is external ip on the Azure Local. If you were deploying directly to AKS you would likely have a public IP. Ensure that you are securing that public IP with an NSG.
+At this point you will notice that there is a __pending__ external ip on the Azure Local. If you were deploying directly to AKS you would likely have a public IP. Ensure that you are securing that public IP with an NSG.
 
 ### Creating Load Balancer on Azure Local
 
@@ -126,7 +139,8 @@ svcSelector={"app":"mssql"}
 
 az k8s-runtime load-balancer create --load-balancer-name $lbname --resource-uri $resUri --addresses $ipRange --advertise-mode $advertiseMode --service-selector $svcSelector
 
-expected output:
+=============================================
+example output:
 
 {
   "id": "/subscriptions/<subid>/resourceGroups/<rg_name>/providers/Microsoft.Kubernetes/ConnectedClusters/<clustername>/providers/Microsoft.KubernetesRuntime/loadBalancers/sql-lb",
@@ -152,6 +166,7 @@ expected output:
   },
   "type": "microsoft.kubernetesruntime/loadbalancers"
 }
+=============================================
 ```
 
 You should now be able to connect to the SQL Server in AKS, using the ip listed above and connecting on port 1433.
