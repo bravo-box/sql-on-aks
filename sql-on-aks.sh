@@ -13,13 +13,13 @@
 # ================================================
 # Variables
 # ================================================
-CLUSTER_NAME="k8s-oside"
+CLUSTER_NAME="<cluster_name>"
 NAMESPACE="sql-at-edge"
 SQL_IMAGE="mcr.microsoft.com/mssql/server:2022-latest"
 lbname="sql-lb"
-ipRange=192.168.1.222/32
+ipRange=<ip_address>/32
 SQL_PORT=1433
-SQL_PWD="MyNewPassword1!123"
+SQL_PWD="<complex_password>"
 app_Label="mssql-edge"
 
 # ================================================

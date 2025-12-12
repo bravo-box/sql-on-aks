@@ -206,3 +206,78 @@ kubectl create token $AAD_ENTITY_OBJECT -n default
 ```
 
 Copy the token and use in the portal. Once you can see the services in the Azure portal you can add the YAML files directly.
+
+### Single Bash Script
+
+Once you have your proxy connection established you can run the bash script ```sql-on-aks.sh```.
+
+Update rows 16-23 with your particular values:
+
+```bash
+CLUSTER_NAME="<cluster_name>"
+NAMESPACE="sql-at-edge"
+SQL_IMAGE="mcr.microsoft.com/mssql/server:2022-latest"
+lbname="sql-lb"
+ipRange=<ip_from_aks_lnet>/32
+SQL_PORT=1433
+SQL_PWD="<complex_password>"
+app_Label="mssql-edge"
+```
+
+```bash
+bash sql-on-aks.sh
+```
+
+Expected output:
+
+```text
+✅ Using AKS Cluster: k8s-oside in Resource Group: <resource_group_name>
+namespace/sql-at-edge created
+✅ Namespace 'sql-at-edge' created.
+secret/mssql-secret created
+persistentvolumeclaim/mssql-pvc created
+statefulset.apps/mssql created
+service/mssql created
+✅ SQL Server deployment applied.
+... Waiting for SQL Server pod to be ready...
+pod/mssql-0 condition met
+✅ SQL Server pod is ready.
+{
+  "id": "/subscriptions/<subscription_id>/resourceGroups/<resource_grp>/providers/Microsoft.Kubernetes/ConnectedClusters/<cluster_name>/providers/Microsoft.KubernetesRuntime/loadBalancers/sql-lb",
+  "name": "sql-lb",
+  "properties": {
+    "addresses": [
+      "<ip_address>/32"
+    ],
+    "advertiseMode": "Both",
+    "provisioningState": "Succeeded",
+    "serviceSelector": {
+      "app": "mssql-edge"
+    }
+  },
+  "resourceGroup": "resource_group_name",
+  "systemData": {
+    "createdAt": "2025-12-12T21:17:55.3534372Z",
+    "createdBy": "upn",
+    "createdByType": "User",
+    "lastModifiedAt": "2025-12-12T21:17:55.3534372Z",
+    "lastModifiedBy": "upn",
+    "lastModifiedByType": "User"
+  },
+  "type": "microsoft.kubernetesruntime/loadbalancers"
+}
+✅ Load balancer 'sql-lb' created.
+  >> AKS Cluster Name: <cluster_name>
+  >> Namespace: sql-at-edge
+  >> SQL Server Image: mcr.microsoft.com/mssql/server:2022-latest
+  >> Load Balancer Name: sql-lb
+  >> SQL Server Port: 1433
+  >> SQL Server SA Password: <complex_password>
+  >> Service Selector: {"app":"mssql-edge"}
+  >> IP Range: <ip_address>/32
+  >> LB Resource URI: /subscriptions/<subscription_id>/resourceGroups/<resource_grp>/providers/Microsoft.Kubernetes/ConnectedClusters/<cluster_name>
+  >> To connect to SQL Server, use the Load Balancer IP on port 1433
+===============================================
+✅ SQL Server on AKS Setup Complete!
+===============================================
+```
