@@ -1,0 +1,180 @@
+#!/bin/bash
+
+# This script sets up SQL Server on Arc-enabled Azure Kubernetes Service (AKS),
+# particularly focused on setup for Azure Local.
+# It assumes that the AKS cluster is already created and configured with Azure Arc.
+# Prerequisites:
+# - Azure CLI installed and logged in
+# - Azure connectedk8s extension installed
+# - kubectl installed
+# - Ensure that you have your proxy connection already established before running this script.
+#       az connectedk8s proxy -n <cluster-name> -g <resource-group>
+
+# ================================================
+# Variables
+# ================================================
+CLUSTER_NAME="k8s-oside"
+NAMESPACE="sql-at-edge"
+SQL_IMAGE="mcr.microsoft.com/mssql/server:2022-latest"
+lbname="sql-lb"
+ipRange=192.168.1.222/32
+SQL_PORT=1433
+SQL_PWD="MyNewPassword1!123"
+app_Label="mssql-edge"
+
+# ================================================
+# CAPTURE VARIABLES FROM USER INPUT
+# ================================================
+
+clusterRG=$(az connectedk8s list --query "[?name=='$CLUSTER_NAME'].resourceGroup" -o tsv)
+echo "✅ Using AKS Cluster: $CLUSTER_NAME in Resource Group: $clusterRG"
+
+# ================================================
+# ENCODE SQL SA PASSWORD - BASE64
+# ================================================
+ENCODED_SQL_PWD=$(echo -n "$SQL_PWD" | base64)
+
+# ================================================
+# Create Namespace
+# ================================================
+kubectl create namespace $NAMESPACE
+echo "✅ Namespace '$NAMESPACE' created."
+
+# ================================================
+# Deploy SQL Server on AKS
+# ================================================
+kubectl apply -n $NAMESPACE -f - <<EOF
+
+apiVersion: v1
+kind: Secret
+metadata:
+  namespace: $NAMESPACE
+  name: mssql-secret
+type: Opaque
+data:
+  SA_PASSWORD: $ENCODED_SQL_PWD
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: $NAMESPACE
+  name: mssql-pvc
+  labels:
+    app: ${app_Label}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: default
+  volumeMode: Filesystem
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: $NAMESPACE
+  name: mssql
+  labels:
+    app: ${app_Label}
+spec:
+  serviceName: "mssql"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ${app_Label}
+  template:
+    metadata:
+      labels:
+        app: ${app_Label}
+    spec:
+      securityContext:
+        runAsUser: 10001        # SQL Server container user
+        fsGroup: 10001          # Ensures PVC is writable by SQL Server
+        runAsGroup: 10001
+      containers:
+        - name: mssql
+          image: $SQL_IMAGE
+          securityContext:
+            allowPrivilegeEscalation: false
+          ports:
+            - containerPort: 1433
+          env:
+            - name: ACCEPT_EULA
+              value: "Y"
+            - name: SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mssql-secret
+                  key: SA_PASSWORD
+          volumeMounts:
+            - name: mssql-data
+              mountPath: /var/opt/mssql
+  volumeClaimTemplates:
+    - metadata:
+        name: mssql-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: default
+        resources:
+          requests:
+            storage: 20Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: $NAMESPACE
+  name: mssql
+  annotations:
+    app: ${app_Label}
+  labels:
+    app: ${app_Label}
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 1433
+      targetPort: 1433
+  selector:
+    app: ${app_Label}
+EOF
+
+echo "✅ SQL Server deployment applied."
+
+# ================================================
+# Wait for SQL Server Pod to be Ready
+# ================================================
+echo "... Waiting for SQL Server pod to be ready..."
+kubectl wait --namespace $NAMESPACE --for=condition=ready pod -l app=${app_Label} --timeout=300s
+echo "✅ SQL Server pod is ready." 
+
+# ================================================
+# CREATE LOAD BALANCER
+# ================================================
+resUri=$(az connectedk8s show -n $CLUSTER_NAME -g $clusterRG --query id -o tsv)
+advertiseMode=both
+svcSelector="{\"app\":\"$app_Label\"}"
+
+az k8s-runtime load-balancer create --load-balancer-name $lbname --resource-uri $resUri --addresses $ipRange --advertise-mode $advertiseMode --service-selector $svcSelector
+
+echo "✅ Load balancer '$lbname' created."
+
+# ================================================
+# FINAL VARIABLE OUTPUTS
+# ===============================================
+
+echo "==============================================="
+echo "✅ SQL Server on AKS Configuration Summary:"
+echo "  >> AKS Cluster Name: $CLUSTER_NAME"
+echo "  >> Namespace: $NAMESPACE"
+echo "  >> SQL Server Image: $SQL_IMAGE"
+echo "  >> Load Balancer Name: $lbname"
+echo "  >> SQL Server Port: $SQL_PORT"
+echo "  >> SQL Server SA Password: $SQL_PWD"
+echo "  >> Service Selector: $svcSelector"
+echo "  >> IP Range: $ipRange"
+echo "  >> LB Resource URI: $resUri"
+echo "  >> To connect to SQL Server, use the Load Balancer IP on port $SQL_PORT"
+
+echo "==============================================="
+echo "✅ SQL Server on AKS Setup Complete!"
+echo "==============================================="
