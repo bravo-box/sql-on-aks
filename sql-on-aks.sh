@@ -13,14 +13,15 @@
 # ================================================
 # Variables
 # ================================================
-CLUSTER_NAME="<cluster_name>"
+CLUSTER_NAME="<cluster-name>"  # Replace with your AKS cluster name
 NAMESPACE="sql-at-edge"
 SQL_IMAGE="mcr.microsoft.com/mssql/server:2022-latest"
 lbname="sql-lb"
 ipRange=<ip_address>/32
 SQL_PORT=1433
-SQL_PWD="<complex_password>"
+SQL_PWD="<complex_password>"  # Replace with a strong SA password
 app_Label="mssql-edge"
+st_ClassName="default"
 
 # ================================================
 # CAPTURE VARIABLES FROM USER INPUT
@@ -28,6 +29,18 @@ app_Label="mssql-edge"
 
 clusterRG=$(az connectedk8s list --query "[?name=='$CLUSTER_NAME'].resourceGroup" -o tsv)
 echo "✅ Using AKS Cluster: $CLUSTER_NAME in Resource Group: $clusterRG"
+
+# ================================================
+# VALIDATE STORAGE CLASS EXISTS
+# ================================================
+
+StorageClass=$(kubectl get storageclass $st_ClassName -o jsonpath="{.metadata.name}" 2>/dev/null)
+if [[ "$StorageClass" == "$st_ClassName" ]]; then
+    echo "✅ StorageClass '$StorageClass' found."
+else
+    echo "❌ No StorageClass called '$st_ClassName' found in the cluster. Please create the StorageClass before proceeding."
+    exit 1
+fi
 
 # ================================================
 # ENCODE SQL SA PASSWORD - BASE64
@@ -67,7 +80,7 @@ spec:
   resources:
     requests:
       storage: 20Gi
-  storageClassName: default
+  storageClassName: $st_ClassName
   volumeMode: Filesystem
 ---
 apiVersion: apps/v1
@@ -115,7 +128,7 @@ spec:
         name: mssql-data
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: default
+        storageClassName: $st_ClassName
         resources:
           requests:
             storage: 20Gi

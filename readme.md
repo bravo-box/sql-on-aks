@@ -209,7 +209,7 @@ Copy the token and use in the portal. Once you can see the services in the Azure
 
 ### Single Bash Script
 
-Once you have your proxy connection established you can run the bash script ```sql-on-aks.sh```.
+Once you have your proxy connection established you can run the bash script ```sql-on-aks.sh```, it will create everything we have covered above. Create namespace, deploy containers and create the load balancer.
 
 Update rows 16-23 with your particular values:
 
@@ -222,6 +222,7 @@ ipRange=<ip_from_aks_lnet>/32
 SQL_PORT=1433
 SQL_PWD="<complex_password>"
 app_Label="mssql-edge"
+st_ClassName="default"
 ```
 
 ```bash
@@ -231,7 +232,8 @@ bash sql-on-aks.sh
 Expected output:
 
 ```text
-✅ Using AKS Cluster: k8s-oside in Resource Group: <resource_group_name>
+✅ Using AKS Cluster: <cluster_name> in Resource Group: <resource_group_name>
+✅ StorageClass 'default' found.
 namespace/sql-at-edge created
 ✅ Namespace 'sql-at-edge' created.
 secret/mssql-secret created
