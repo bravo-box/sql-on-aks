@@ -2,7 +2,7 @@
 
 This is a quickstart to run SQL in AKS or Arc-enabled AKS. The focus of this will be around the edge (Azure Local) as there are many options for running SQL in Azure for example: SQL Managed Instance and Azure SQL. This code works on both Azure Kubernetes Service and Arc-Enabled Kubernetes Service.
 
-Deployment is relatively straight-forward however there is some infrastructure setup that needs to be in place prior to deploying the SQL YAML.
+Deployment is relatively straight-forward however there is some infrastructure setup that needs to be in place prior to deploying the SQL YAML. In this readme you will have the code to do a manual build or you can scroll to the bottom for the bash script deployment method.
 
 ## What you will cover in this quickstart
 
