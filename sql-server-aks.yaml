@@ -79,11 +79,14 @@ metadata:
   namespace: sql-demo
   name: mssql
   annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+    service.beta.kubernetes.io/azure-load-balancer-internal-subnet: "<your-subnet-name>"
     app: mssql
   labels:
     app: mssql
 spec:
   type: LoadBalancer
+  loadBalancerIP: "<private-ip-from-your-subnet>"
   ports:
     - port: 1433
       targetPort: 1433
